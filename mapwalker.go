@@ -11,9 +11,14 @@ import (
 	"github.com/aybabtme/uniplot/histogram"
 )
 
-func mapRun(initialSize int) int {
+func mapRun(initialSize int, capacity int) int {
 	// initialize
-	m := make(map[int]int)
+	var m map[int]int
+	if capacity == 0 {
+		m = make(map[int]int)
+	} else {
+		m = make(map[int]int, capacity)
+	}
 	for i := 0; i < initialSize; i++ {
 		m[i] = i
 	}
@@ -75,7 +80,7 @@ func printResults(mapType string, initialSize int, numIterations int, results []
 	fmt.Printf("\tAverage\t%f\n", avg)
 	fmt.Printf("\tStddev\t%f\n", stddev)
 	fmt.Printf("Distribution of final size of map\n")
-	hist := histogram.Hist(15, results)
+	hist := histogram.Hist(10, results)
 	histogram.Fprint(os.Stdout, hist, histogram.Linear(20))
 }
 
@@ -87,11 +92,14 @@ func main() {
 
 	mapResults := make([]float64, *numIterations)
 	noGrowMapResults := make([]float64, *numIterations)
+	sparseMapResults := make([]float64, *numIterations)
 	for i := 0; i < *numIterations; i++ {
-		mapResults[i] = float64(mapRun(*initialSize))
+		mapResults[i] = float64(mapRun(*initialSize, *initialSize))
 		noGrowMapResults[i] = float64(noGrowMapRun(*initialSize))
+		sparseMapResults[i] = float64(mapRun(*initialSize, 1<<16))
 	}
 
 	printResults("map", *initialSize, *numIterations, mapResults)
 	printResults("NoGrowMap", *initialSize, *numIterations, noGrowMapResults)
+	printResults("sparse map", *initialSize, *numIterations, sparseMapResults)
 }
