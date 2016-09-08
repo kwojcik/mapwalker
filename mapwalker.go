@@ -6,25 +6,31 @@ import (
 	"math"
 	"os"
 
+	"github.com/kwojcik/mapwalker/internal/nogrowmap"
+
 	"github.com/aybabtme/uniplot/histogram"
 )
 
-func mapIterate(initialSize int, numIterations int) []float64 {
-	results := make([]float64, numIterations)
-	for iteration := 0; iteration < numIterations; iteration++ {
-		// initialize
-		m := make(map[int]int)
-		for i := 0; i < initialSize; i++ {
-			m[i] = i
-		}
-
-		// iterate the map, adding a value each time
-		for k := range m {
-			m[k+initialSize] = k
-		}
-		results[iteration] = float64(len(m))
+func mapRun(initialSize int) int {
+	// initialize
+	m := make(map[int]int)
+	for i := 0; i < initialSize; i++ {
+		m[i] = i
 	}
-	return results
+
+	// iterate the map, adding a value each time
+	for k := range m {
+		m[k+initialSize] = k
+	}
+	return len(m)
+}
+
+func noGrowMapRun(initialSize int) int {
+	m := nogrowmap.NewNoGrowMap(initialSize)
+	for range m.Iterator {
+		m.Insert()
+	}
+	return m.Size
 }
 
 type result struct {
@@ -60,20 +66,32 @@ func maths(nums []float64) (stddev float64, avg float64) {
 	return stddev, avg
 }
 
+func printResults(mapType string, initialSize int, numIterations int, results []float64) {
+	stddev, avg := maths(results)
+	fmt.Printf("\nResults for %s\n", mapType)
+	fmt.Printf("Initial size: %d\n", initialSize)
+	fmt.Printf("Iterations: %d\n", numIterations)
+	fmt.Printf("Final size:\n")
+	fmt.Printf("\tAverage\t%f\n", avg)
+	fmt.Printf("\tStddev\t%f\n", stddev)
+	fmt.Printf("Distribution of final size of map\n")
+	hist := histogram.Hist(15, results)
+	histogram.Fprint(os.Stdout, hist, histogram.Linear(20))
+}
+
 func main() {
 	flag.Usage = usage
 	initialSize := flag.Int("initial", 1024, "initial size of map")
 	numIterations := flag.Int("iterations", 1000, "number of iterations to run")
 	flag.Parse()
 
-	mapFinalSizes := mapIterate(*initialSize, *numIterations)
-	stddev, avg := maths(mapFinalSizes)
-	fmt.Printf("Initial size of map: %d\n", *initialSize)
-	fmt.Printf("Iterations: %d\n", *numIterations)
-	fmt.Printf("Final size:\n")
-	fmt.Printf("\tAverage\t%f\n", avg)
-	fmt.Printf("\tStddev\t%f\n", stddev)
-	fmt.Printf("\nDistribution of final size of map\n")
-	hist := histogram.Hist(10, mapFinalSizes)
-	histogram.Fprint(os.Stdout, hist, histogram.Linear(20))
+	mapResults := make([]float64, *numIterations)
+	noGrowMapResults := make([]float64, *numIterations)
+	for i := 0; i < *numIterations; i++ {
+		mapResults[i] = float64(mapRun(*initialSize))
+		noGrowMapResults[i] = float64(noGrowMapRun(*initialSize))
+	}
+
+	printResults("map", *initialSize, *numIterations, mapResults)
+	printResults("NoGrowMap", *initialSize, *numIterations, noGrowMapResults)
 }
