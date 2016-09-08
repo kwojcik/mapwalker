@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/aybabtme/uniplot/histogram"
@@ -41,6 +42,24 @@ a real golang map, and a simulated map.
 	flag.PrintDefaults()
 }
 
+// maths does some maths
+func maths(nums []float64) (stddev float64, avg float64) {
+	sum := 0.0
+	for _, n := range nums {
+		sum += n
+	}
+	avg = sum / float64(len(nums))
+
+	sumOfDiffsSquared := 0.0
+	for _, n := range nums {
+		sumOfDiffsSquared += math.Pow(float64(n)-avg, 2.0)
+	}
+
+	// or is it len(nums) - 1 ...?
+	stddev = math.Sqrt(sumOfDiffsSquared / float64(len(nums)))
+	return stddev, avg
+}
+
 func main() {
 	flag.Usage = usage
 	initialSize := flag.Int("initial", 1024, "initial size of map")
@@ -48,9 +67,13 @@ func main() {
 	flag.Parse()
 
 	mapFinalSizes := mapIterate(*initialSize, *numIterations)
-
+	stddev, avg := maths(mapFinalSizes)
 	fmt.Printf("Initial size of map: %d\n", *initialSize)
-	fmt.Printf("Distribution of final size of map over %d iterations\n", *numIterations)
+	fmt.Printf("Iterations: %d\n", *numIterations)
+	fmt.Printf("Final size:\n")
+	fmt.Printf("\tAverage\t%f\n", avg)
+	fmt.Printf("\tStddev\t%f\n", stddev)
+	fmt.Printf("\nDistribution of final size of map\n")
 	hist := histogram.Hist(10, mapFinalSizes)
 	histogram.Fprint(os.Stdout, hist, histogram.Linear(20))
 }
