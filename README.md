@@ -1,5 +1,8 @@
 # mapwalker
-An exploration into what happens when you insert into a map that you're iterating over
+An exploration into what happens when you insert into a map that you're iterating over.
+
+Currently, two experiments are run: one with a real golang map and one with a simulation of
+a map that never needs to grow.
 
 # install
 ```
