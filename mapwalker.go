@@ -19,7 +19,7 @@ func mapIterate(initialSize int, numIterations int) []float64 {
 
 		// iterate the map, adding a value each time
 		for k := range m {
-			m[k*2] = k * 2
+			m[k+initialSize] = k
 		}
 		results[iteration] = float64(len(m))
 	}
