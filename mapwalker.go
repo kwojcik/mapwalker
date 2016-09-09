@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/kwojcik/mapwalker/internal/nogrowmap"
 
@@ -71,17 +72,30 @@ func maths(nums []float64) (stddev float64, avg float64) {
 	return stddev, avg
 }
 
-func printResults(mapType string, initialSize int, numIterations int, results []float64) {
-	stddev, avg := maths(results)
-	fmt.Printf("\nResults for %s\n", mapType)
-	fmt.Printf("Initial size: %d\n", initialSize)
-	fmt.Printf("Iterations: %d\n", numIterations)
-	fmt.Printf("Final size:\n")
-	fmt.Printf("\tAverage\t%f\n", avg)
-	fmt.Printf("\tStddev\t%f\n", stddev)
-	fmt.Printf("Distribution of final size of map\n")
-	hist := histogram.Hist(10, results)
-	histogram.Fprint(os.Stdout, hist, histogram.Linear(20))
+func printResults(mapType string, initialSize int, numIterations int, results []float64,
+	rawResults bool) {
+	if rawResults {
+		fmt.Println(strings.Trim(fmt.Sprint(results), "[]"))
+	} else {
+		stddev, avg := maths(results)
+		fmt.Printf("\nResults for %s\n", mapType)
+		fmt.Printf("Initial size: %d\n", initialSize)
+		fmt.Printf("Iterations: %d\n", numIterations)
+		fmt.Printf("Final size:\n")
+		fmt.Printf("\tAverage\t%f\n", avg)
+		fmt.Printf("\tStddev\t%f\n", stddev)
+		fmt.Printf("Distribution of final size of map\n")
+		hist := histogram.Hist(10, results)
+		histogram.Fprint(os.Stdout, hist, histogram.Linear(20))
+	}
+}
+
+func runIterations(numIterations int, runFunc func() int) []float64 {
+	results := make([]float64, numIterations)
+	for i := 0; i < numIterations; i++ {
+		results[i] = float64(runFunc())
+	}
+	return results
 }
 
 func main() {
@@ -91,29 +105,29 @@ func main() {
 	onlyMap := flag.Bool("onlyMap", false, "only run for a normal map")
 	onlyNoGrowMap := flag.Bool("onlyNoGrowMap", false, "only run for a simulated no-grow map")
 	onlySparseMap := flag.Bool("onlySparseMap", false, "only run for a sparse map")
+	rawResults := flag.Bool("rawResults", false, "only show raw final sizes")
 	flag.Parse()
 
 	all := !*onlyMap && !*onlyNoGrowMap && !*onlySparseMap
 	if all || *onlyMap {
-		mapResults := make([]float64, *numIterations)
-		for i := 0; i < *numIterations; i++ {
-			mapResults[i] = float64(mapRun(*initialSize, *initialSize))
-		}
-		printResults("map", *initialSize, *numIterations, mapResults)
+		mapResults := runIterations(*numIterations,
+			func() int {
+				return mapRun(*initialSize, *initialSize)
+			})
+		printResults("map", *initialSize, *numIterations, mapResults, *rawResults)
 	}
 	if all || *onlyNoGrowMap {
-		noGrowMapResults := make([]float64, *numIterations)
-
-		for i := 0; i < *numIterations; i++ {
-			noGrowMapResults[i] = float64(noGrowMapRun(*initialSize))
-		}
-		printResults("NoGrowMap", *initialSize, *numIterations, noGrowMapResults)
+		noGrowMapResults := runIterations(*numIterations,
+			func() int {
+				return noGrowMapRun(*initialSize)
+			})
+		printResults("NoGrowMap", *initialSize, *numIterations, noGrowMapResults, *rawResults)
 	}
 	if all || *onlySparseMap {
-		sparseMapResults := make([]float64, *numIterations)
-		for i := 0; i < *numIterations; i++ {
-			sparseMapResults[i] = float64(mapRun(*initialSize, 1<<16))
-		}
-		printResults("sparse map", *initialSize, *numIterations, sparseMapResults)
+		sparseMapResults := runIterations(*numIterations,
+			func() int {
+				return mapRun(*initialSize, *initialSize*50)
+			})
+		printResults("sparse map", *initialSize, *numIterations, sparseMapResults, *rawResults)
 	}
 }
