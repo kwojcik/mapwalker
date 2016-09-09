@@ -6,17 +6,17 @@ Currently, three experiments are run:
 2. A simulated map that never needs to grow
 3. A real golang map with a large pre-allocated capacity
 
-# install
+# Install
 ```
 make
 ```
 
-# run
+# Run
 ```
 ./mapwalker
 ```
 
-# results
+# Distributions of types of map
 ```
 kevin$ ./mapwalker
 
@@ -74,3 +74,16 @@ Distribution of final size of map
 2828-2845  3.4%   ███                    34
 2845-2862  1%     ▉                      10
 ```
+
+# Digging further into normal maps
+Can we guess the final size based on the initial size? Let's take some data
+
+```
+for x in `seq 100 100 50000`; do echo -n "$x "; ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x; done | awk '{print $1 " " $2/$1}' > data
+for x in `seq 50000 10000 500000`; do echo -n "$x "; ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x; done | awk '{print $1 " " $2/$1}' >> data
+echo 'set terminal png; plot "data" using 1:2 title "Final size ratio vs initial size"' | gnuplot > test.png
+```
+
+Here we see the ratio of the final size to the initial size, as a function of initial size. It's
+not what I expected...
+![normal map final size ratio](https://github.com/kwojcik/mapwalker/images/1.png)
