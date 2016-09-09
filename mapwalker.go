@@ -88,18 +88,32 @@ func main() {
 	flag.Usage = usage
 	initialSize := flag.Int("initial", 1024, "initial size of map")
 	numIterations := flag.Int("iterations", 1000, "number of iterations to run")
+	onlyMap := flag.Bool("onlyMap", false, "only run for a normal map")
+	onlyNoGrowMap := flag.Bool("onlyNoGrowMap", false, "only run for a simulated no-grow map")
+	onlySparseMap := flag.Bool("onlySparseMap", false, "only run for a sparse map")
 	flag.Parse()
 
-	mapResults := make([]float64, *numIterations)
-	noGrowMapResults := make([]float64, *numIterations)
-	sparseMapResults := make([]float64, *numIterations)
-	for i := 0; i < *numIterations; i++ {
-		mapResults[i] = float64(mapRun(*initialSize, *initialSize))
-		noGrowMapResults[i] = float64(noGrowMapRun(*initialSize))
-		sparseMapResults[i] = float64(mapRun(*initialSize, 1<<16))
+	all := !*onlyMap && !*onlyNoGrowMap && !*onlySparseMap
+	if all || *onlyMap {
+		mapResults := make([]float64, *numIterations)
+		for i := 0; i < *numIterations; i++ {
+			mapResults[i] = float64(mapRun(*initialSize, *initialSize))
+		}
+		printResults("map", *initialSize, *numIterations, mapResults)
 	}
+	if all || *onlyNoGrowMap {
+		noGrowMapResults := make([]float64, *numIterations)
 
-	printResults("map", *initialSize, *numIterations, mapResults)
-	printResults("NoGrowMap", *initialSize, *numIterations, noGrowMapResults)
-	printResults("sparse map", *initialSize, *numIterations, sparseMapResults)
+		for i := 0; i < *numIterations; i++ {
+			noGrowMapResults[i] = float64(noGrowMapRun(*initialSize))
+		}
+		printResults("NoGrowMap", *initialSize, *numIterations, noGrowMapResults)
+	}
+	if all || *onlySparseMap {
+		sparseMapResults := make([]float64, *numIterations)
+		for i := 0; i < *numIterations; i++ {
+			sparseMapResults[i] = float64(mapRun(*initialSize, 1<<16))
+		}
+		printResults("sparse map", *initialSize, *numIterations, sparseMapResults)
+	}
 }
