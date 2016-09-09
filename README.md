@@ -86,4 +86,4 @@ echo 'set terminal png; plot "data" using 1:2 title "Final size ratio vs initial
 
 Here we see the ratio of the final size to the initial size, as a function of initial size. It's
 not what I expected...
-![normal map final size ratio](https://github.com/kwojcik/mapwalker/images/1.png)
+![normal map final size ratio](https://github.com/kwojcik/mapwalker/blob/master/images/1.png)
