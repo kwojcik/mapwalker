@@ -6,7 +6,7 @@ Currently, three experiments are run:
 2. A simulated map that never needs to grow
 3. A real golang map with a large pre-allocated capacity
 
-# Install
+# Build
 ```
 make
 ```
@@ -75,11 +75,16 @@ Distribution of final size of map
 2845-2862  1%     ▉                      10
 ```
 
+# Thoughts so far
+So from this data, it feels safe to conclude that the simulated map accurately models real golang maps except for the growth behavior. We proved this by preallocating a large golang map before running the experiment. Preallocating the large map lets us insert as much as we want without coming close to the load factor needed to trigger map growth.
+
 # Digging further into normal maps
-Can we guess the final size based on the initial size? Let's take some data
+Based on the data so far, it looks like we need to dig deeper on the behavior of maps when they grow. Let's take some data on the iteration length vs the initial size of the map; maybe we guess the final size based on the initial size?
 
 ```
+# Initial sizes 100, 200, 300, ..., 50000
 for x in `seq 100 100 50000`; do echo -n "$x "; ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x; done | awk '{print $1 " " $2/$1}' > data
+# Initial sizes 50000, 60000, 70000, ..., 500000
 for x in `seq 50000 10000 500000`; do echo -n "$x "; ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x; done | awk '{print $1 " " $2/$1}' >> data
 echo 'set terminal png; plot "data" using 1:2 title "Final size ratio vs initial size"' | gnuplot > test.png
 ```
