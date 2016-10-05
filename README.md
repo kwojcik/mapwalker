@@ -1,18 +1,39 @@
 # mapwalker
-An exploration into what happens when you insert into a map that you're iterating over.
+What happens when you insert into a map that you're iterating over.
 
-Currently, three experiments are run:
+# Intro
+If you are iterating over each element in a map, and you insert a new element into the map at each step, how long does it take you to reach the end?
+
+I've never had to do this before, and it's not even supported in some languages, like Python:
+```
+>>> d = {'hello': 'world'}
+>>> for e in d:
+...     d['foo'] = 'bar'
+...
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+RuntimeError: dictionary changed size during iteration
+```
+
+The position of an element in a hashtable is random assuming you have a good hash function, so each element that you insert has a chance of ending up ahead of or behind your iterator. The probability of either happening is a function of where the iterator is in the map. In the middle, there is a 50/50 chance of either happening. Near the beginning, it's much more likely that the element ends up ahead of you. Near the end, it's more likely that the element will end up behind you.
+
+The other variable is how large the map is when you start iterating. If the map starts of with 4 elements when you start iterating, then the 5th element has a 80% chance of going ahead of you and 20% of going behind you. If you start iterating over a map of 999 elements, the 1000th has a 0.1% chance of going behind you and a 99.9% chance of going ahead of you.
+
+But it's still not that simple. A map will typically dynamically resize itself when it starts to get full. The specifics about how a map growswill turn out to be the interesting part of this exploration.
+
+# Experiments
+
+To demonstrate the complexity, let's run three experiments to demonstrate that growing the hash table makes things a little complicated.
+
 1. A real golang map
 2. A simulated map that never needs to grow
-3. A real golang map with a large pre-allocated capacity
+3. A real golang map, with a large pre-allocated capacity
 
-# Build
+### To follow along at home
 ```
+git clone https://github.com/kwojcik/mapwalker.git
+cd mapwalker
 make
-```
-
-# Run
-```
 ./mapwalker
 ```
 
@@ -76,16 +97,33 @@ Distribution of final size of map
 ```
 
 # Thoughts so far
-So from this data, it feels safe to conclude that the simulated map accurately models real golang maps except for the growth behavior. We proved this by preallocating a large golang map before running the experiment. Preallocating the large map lets us insert as much as we want without coming close to the load factor needed to trigger map growth.
+1. The real map grew about 2.5x as we iterated through it
+2. The simulated map grew about 2.8x as we iterated through it.
+3. The sparse map (preallocated large enough so as to not grow) behaved exactly like the simulated map.
+
+The simulated and sparse map behaved pretty similarly. The averages and stddev were identical, but the distribution was a little different. I still think it's safe to say that our simulated map accurately models a map's behavior, minus growth.
+
+The real map that had to grow actually ended up smaller than the simulated one 100% of the time, which is interesting. I expected the randomness of growth to give a much larger variance in final size. The randomness I'm referring to here is that during growth I expecte the element that were iterating on to end up in a random bucket in the hash table. Meaning sometimes after growing the iterator would jump to the end of the map and other times it would be at the very beginning.
+
+I guess I was wrong, let's dig in further.
 
 # Digging further into normal maps
-Based on the data so far, it looks like we need to dig deeper on the behavior of maps when they grow. Let's take some data on the iteration length vs the initial size of the map; maybe we guess the final size based on the initial size?
+Let's take some data on the iteration length vs the initial size of the map; maybe we guess the final size based on the initial size?
 
 ```
 # Initial sizes 100, 200, 300, ..., 50000
-for x in `seq 100 100 50000`; do echo -n "$x "; ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x; done | awk '{print $1 " " $2/$1}' > data
+for x in `seq 100 100 50000`; do
+  echo -n "$x ";
+  ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x;
+done | awk '{print $1 " " $2/$1}' > data
+
 # Initial sizes 50000, 60000, 70000, ..., 500000
-for x in `seq 50000 10000 500000`; do echo -n "$x "; ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x; done | awk '{print $1 " " $2/$1}' >> data
+for x in `seq 50000 10000 500000`; do
+  echo -n "$x ";
+  ./mapwalker --rawResults --onlyMap --iterations 1 --initial $x;
+done | awk '{print $1 " " $2/$1}' >> data
+
+# Plot
 echo 'set terminal png; plot "data" using 1:2 title "Final size ratio vs initial size"' | gnuplot > test.png
 ```
 
